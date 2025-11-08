@@ -57,6 +57,8 @@ fn build_column_for<'a>(app: &'a AppState, status: &crate::task::Status) -> List
         .map(|task| {
             let selected = app.selected_index == task.0 && app.selected_status == task.1.status;
 
+            let dt_fmt = "%d/%m/%Y %H:%M";
+
             let fmt_data = format!(
                 "{}{}\nCreatedAt: {}\nUpdated At: {}\n{}\n",
                 if selected {
@@ -65,10 +67,10 @@ fn build_column_for<'a>(app: &'a AppState, status: &crate::task::Status) -> List
                     String::new()
                 },
                 task.1.description,
-                &task.1.created_at.format("%d/%m/%Y %H:%M"),
-                &task.1.updated_at.format("%d/%m/%Y %H:%M"),
+                &task.1.created_at.format(dt_fmt),
+                &task.1.updated_at.format(dt_fmt),
                 if let Some(deadline_str) = task.1.deadline {
-                    format!("Due to: {}", deadline_str.to_string()).to_string()
+                    format!("Due to: {}\n", deadline_str.format(dt_fmt)).to_string()
                 } else {
                     String::new()
                 }
