@@ -17,7 +17,7 @@ pub struct TasksDataSrc {
 }
 
 impl TasksDataSrc {
-    fn new(db: Database) -> Self {
+    pub fn new(db: Database) -> Self {
         Self {
             db: RefCell::new(db),
         }

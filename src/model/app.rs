@@ -3,7 +3,7 @@ pub struct AppControl {
     pub title: &'static str,
 }
 
-pub const BOARD_CONTROLS: [AppControl; 6] = [
+pub const BOARD_CONTROLS: [AppControl; 7] = [
     AppControl {
         key_binding: "q",
         title: "Quit",
@@ -11,6 +11,10 @@ pub const BOARD_CONTROLS: [AppControl; 6] = [
     AppControl {
         key_binding: "Tab",
         title: "Select next column",
+    },
+    AppControl {
+        key_binding: "Shift + Tab",
+        title: "Select prev column",
     },
     AppControl {
         key_binding: "←→",

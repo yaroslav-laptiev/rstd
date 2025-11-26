@@ -16,9 +16,9 @@ use crossterm::{
 
 use crate::{
     app::{AppState, TaskModalState},
-    data::{Database, tasks::TasksDataSrc},
+    data::{Database, src::tasks::TasksDataSrc},
     model::{app::AppMode, error::AppError, task::Task},
-    ui::{render_board, render_task_modal},
+    ui::{board::render_board, new_task::render_task_modal},
     utils::dt_utils::str_to_local_dt,
 };
 
@@ -31,8 +31,8 @@ fn main() -> Result<(), AppError> {
     let mut db = Database::new().expect("Failed to connect to DB");
     db.apply_migrations().expect("Failed to apply migrations");
 
-    let task_ds = TasksDataSrc::new(&db);
-    let mut app = AppState::new(&task_ds);
+    let mut task_ds = TasksDataSrc::new(db);
+    let mut app = AppState::new(&mut task_ds);
     let mut modal_state = TaskModalState::new();
 
     loop {
@@ -61,12 +61,16 @@ fn main() -> Result<(), AppError> {
                             app.select_next_status();
                             break;
                         }
+                        KeyCode::BackTab => {
+                            app.select_prev_status();
+                            break;
+                        }
                         KeyCode::Left => {
-                            app.move_task_to_column(&mut db, &app.selected_status.prev())?;
+                            app.move_task_to_column(&app.selected_status.prev())?;
                             break;
                         }
                         KeyCode::Right => {
-                            app.move_task_to_column(&mut db, &app.selected_status.next())?;
+                            app.move_task_to_column(&app.selected_status.next())?;
                             break;
                         }
                         KeyCode::Down => {
@@ -82,7 +86,7 @@ fn main() -> Result<(), AppError> {
                             break;
                         }
                         KeyCode::Char('d') => {
-                            app.delete_task(&mut db);
+                            app.delete_task();
                             break;
                         }
                         _ => continue,
@@ -93,7 +97,7 @@ fn main() -> Result<(), AppError> {
 
                             let task =
                                 Task::new(modal_state.description_in.to_string(), None, deadline);
-                            app.create_task(&mut db, &task);
+                            app.create_task(&task);
                             app.switch_mode();
                             modal_state.clear();
                             break;

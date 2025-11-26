@@ -13,11 +13,11 @@ pub struct AppState<'a> {
     pub selected_index: usize,
     pub should_quit: bool,
     pub mode: AppMode,
-    repo: &'a dyn TaskRepo,
+    repo: &'a mut dyn TaskRepo,
 }
 
 impl<'a> AppState<'a> {
-    pub fn new(repo: &'a dyn TaskRepo) -> AppState<'a> {
+    pub fn new(repo: &'a mut dyn TaskRepo) -> AppState<'a> {
         let tasks: Vec<Task> = repo.load_tasks().expect("Failed to load tasks");
 
         AppState {
@@ -36,6 +36,11 @@ impl<'a> AppState<'a> {
 
     pub fn select_next_status(&mut self) {
         self.selected_status = self.selected_status.next();
+        self.selected_index = 0;
+    }
+
+    pub fn select_prev_status(&mut self) {
+        self.selected_status = self.selected_status.prev();
         self.selected_index = 0;
     }
 
@@ -86,8 +91,8 @@ impl<'a> AppState<'a> {
     }
 
     pub fn delete_task(&mut self) {
-        let task = self.tasks_for_status(&self.selected_status)[self.selected_index];
-        self.repo.delete_task(task).expect("failed to delete task");
+        let task = self.tasks_for_status(&self.selected_status)[self.selected_index].clone();
+        self.repo.delete_task(&task).expect("failed to delete task");
         self.tasks = self.repo.load_tasks().expect("Failed to update tasks list");
         self.selected_index = 0;
     }
