@@ -1,25 +1,25 @@
 mod app;
-mod db;
-mod error;
-mod migrator;
-mod task;
+mod data;
+mod domain;
+mod model;
 mod ui;
 mod utils;
 
 use ratatui::{Terminal, backend::CrosstermBackend};
 use std::io;
 
-use crate::{
-    app::{AppMode, AppState, TaskModalState},
-    db::Database,
-    error::AppError,
-    task::Task,
-    ui::{render_board, render_task_modal},
-};
 use crossterm::{
     ExecutableCommand,
     event::{self, Event, KeyCode, KeyModifiers},
     terminal::{EnterAlternateScreen, disable_raw_mode, enable_raw_mode},
+};
+
+use crate::{
+    app::{AppState, TaskModalState},
+    data::{Database, tasks::TasksDataSrc},
+    model::{app::AppMode, error::AppError, task::Task},
+    ui::{render_board, render_task_modal},
+    utils::dt_utils::str_to_local_dt,
 };
 
 fn main() -> Result<(), AppError> {
@@ -31,7 +31,8 @@ fn main() -> Result<(), AppError> {
     let mut db = Database::new().expect("Failed to connect to DB");
     db.apply_migrations().expect("Failed to apply migrations");
 
-    let mut app = AppState::new(&db);
+    let task_ds = TasksDataSrc::new(&db);
+    let mut app = AppState::new(&task_ds);
     let mut modal_state = TaskModalState::new();
 
     loop {
@@ -88,7 +89,7 @@ fn main() -> Result<(), AppError> {
                     },
                     AppMode::NewTask => match (key_event.code, key_event.modifiers) {
                         (KeyCode::Char('s'), KeyModifiers::CONTROL) => {
-                            let deadline = crate::utils::str_to_local_dt(&modal_state.deadline_in);
+                            let deadline = str_to_local_dt(&modal_state.deadline_in);
 
                             let task =
                                 Task::new(modal_state.description_in.to_string(), None, deadline);

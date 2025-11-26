@@ -1,72 +1,24 @@
 use crate::{
-    db::Database,
-    error::AppError,
-    task::{Status, Task},
+    domain::repo::tasks_repo::TaskRepo,
+    model::{
+        app::AppMode,
+        error::AppError,
+        task::{Status, Task},
+    },
 };
 
-pub struct AppControl {
-    pub key_binding: &'static str,
-    pub title: &'static str,
-}
-
-pub const BOARD_CONTROLS: [AppControl; 6] = [
-    AppControl {
-        key_binding: "q",
-        title: "Quit",
-    },
-    AppControl {
-        key_binding: "Tab",
-        title: "Select next column",
-    },
-    AppControl {
-        key_binding: "←→",
-        title: "Move task",
-    },
-    AppControl {
-        key_binding: "↑↓",
-        title: "Select task",
-    },
-    AppControl {
-        key_binding: "d",
-        title: "Delete task",
-    },
-    AppControl {
-        key_binding: "n",
-        title: "Create task",
-    },
-];
-
-pub const TASK_MODAL_CONTROLS: [AppControl; 3] = [
-    AppControl {
-        key_binding: "Ctrl + s",
-        title: "Create task",
-    },
-    AppControl {
-        key_binding: "Tab",
-        title: "Description/deadline switch",
-    },
-    AppControl {
-        key_binding: "Esc",
-        title: "Go back",
-    },
-];
-
-pub enum AppMode {
-    Board,
-    NewTask,
-}
-
-pub struct AppState {
+pub struct AppState<'a> {
     pub tasks: Vec<Task>,
     pub selected_status: Status,
     pub selected_index: usize,
     pub should_quit: bool,
     pub mode: AppMode,
+    repo: &'a dyn TaskRepo,
 }
 
-impl AppState {
-    pub fn new(db: &Database) -> AppState {
-        let tasks: Vec<Task> = db.load_tasks().expect("Failed to load tasks");
+impl<'a> AppState<'a> {
+    pub fn new(repo: &'a dyn TaskRepo) -> AppState<'a> {
+        let tasks: Vec<Task> = repo.load_tasks().expect("Failed to load tasks");
 
         AppState {
             tasks: tasks,
@@ -74,6 +26,7 @@ impl AppState {
             selected_index: 0,
             should_quit: false,
             mode: AppMode::Board,
+            repo,
         }
     }
 
@@ -103,19 +56,17 @@ impl AppState {
             (self.selected_index - 1) % self.tasks_for_status(&self.selected_status).len();
     }
 
-    pub fn move_task_to_column(
-        &mut self,
-        db: &mut Database,
-        status: &Status,
-    ) -> Result<(), AppError> {
+    pub fn move_task_to_column(&mut self, status: &Status) -> Result<(), AppError> {
         let tasks = self.tasks_for_status(&self.selected_status);
         if tasks.is_empty() {
             return Ok(());
         }
         let mut task = tasks[self.selected_index].clone();
         task.status = *status;
-        db.update_task(&task).expect("Failed to update the task");
-        self.tasks = db.load_tasks().expect("Failed to update tasks list");
+        self.repo
+            .update_task(&task)
+            .expect("Failed to update the task");
+        self.tasks = self.repo.load_tasks().expect("Failed to update tasks list");
         self.selected_status = *status;
         if let Some(idx) = self
             .tasks_for_status(status)
@@ -127,15 +78,17 @@ impl AppState {
         Ok(())
     }
 
-    pub fn create_task(&mut self, db: &mut Database, task: &Task) {
-        db.insert_task(task).expect("failed to create a task");
-        self.tasks = db.load_tasks().expect("Failed to update tasks list");
+    pub fn create_task(&mut self, task: &Task) {
+        self.repo
+            .insert_task(task)
+            .expect("failed to create a task");
+        self.tasks = self.repo.load_tasks().expect("Failed to update tasks list");
     }
 
-    pub fn delete_task(&mut self, db: &mut Database) {
+    pub fn delete_task(&mut self) {
         let task = self.tasks_for_status(&self.selected_status)[self.selected_index];
-        db.delete_task(task).expect("failed to delete task");
-        self.tasks = db.load_tasks().expect("Failed to update tasks list");
+        self.repo.delete_task(task).expect("failed to delete task");
+        self.tasks = self.repo.load_tasks().expect("Failed to update tasks list");
         self.selected_index = 0;
     }
 

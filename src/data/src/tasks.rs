@@ -1,41 +1,31 @@
-use std::str::FromStr;
+use std::{cell::RefCell, str::FromStr};
+
+use chrono::{DateTime, Local};
+use rusqlite::params;
 
 use crate::{
-    error::AppError,
-    migrator::Migrator,
-    task::{Status, Task},
-    utils::db_timestamp_to_local_dt,
+    data::Database,
+    model::{
+        error::AppError,
+        task::{Status, Task},
+    },
+    utils::dt_utils::*,
 };
-use chrono::{DateTime, Local};
-use rusqlite::{Connection, params};
 
-pub struct Database {
-    connection: Connection,
+pub struct TasksDataSrc {
+    db: RefCell<Database>,
 }
 
-impl Database {
-    pub fn new() -> Result<Database, AppError> {
-        if !std::fs::exists("./.rstd").unwrap_or(false) {
-            std::fs::create_dir_all("./.rstd").expect("Failed to create data dir");
+impl TasksDataSrc {
+    fn new(db: Database) -> Self {
+        Self {
+            db: RefCell::new(db),
         }
-
-        let connection = Connection::open("./.rstd/data.db")?;
-
-        Ok(Database { connection })
-    }
-
-    pub fn apply_migrations(&mut self) -> Result<(), ()> {
-        let migrations_str = Migrator::new().get_migrations();
-
-        self.connection
-            .execute_batch(&migrations_str)
-            .expect("Failed to apply migrations");
-
-        Ok(())
     }
 
     pub fn load_tasks(&self) -> Result<Vec<Task>, AppError> {
-        let mut stmt = self.connection.prepare("SELECT * FROM tasks")?;
+        let db = self.db.borrow();
+        let mut stmt = db.connection.prepare("SELECT * FROM tasks")?;
         let task_iter = stmt.query_map([], |row| {
             let status_str: String = row.get("status")?;
 
@@ -67,7 +57,7 @@ impl Database {
     }
 
     pub fn insert_task(&mut self, t: &Task) -> Result<(), AppError> {
-        self.connection.execute(
+        self.db.borrow().connection.execute(
             "INSERT INTO tasks (description, status, created_at, updated_at, deadline)
 VALUES (?1, ?2, ?3, ?4, ?5);",
             params![
@@ -83,7 +73,7 @@ VALUES (?1, ?2, ?3, ?4, ?5);",
 
     pub fn update_task(&mut self, t: &Task) -> Result<(), AppError> {
         if let Some(id) = t.id {
-            self.connection.execute(
+            self.db.borrow().connection.execute(
                 "UPDATE tasks SET updated_at = ?1, status = ?2 WHERE id = ?3",
                 params![Local::now().to_rfc3339(), t.status.to_string(), id,],
             )?;
@@ -93,7 +83,9 @@ VALUES (?1, ?2, ?3, ?4, ?5);",
 
     pub fn delete_task(&mut self, t: &Task) -> Result<(), AppError> {
         if let Some(id) = t.id {
-            self.connection
+            self.db
+                .borrow()
+                .connection
                 .execute("DELETE from tasks WHERE id = ?1", params![id])?;
         }
         Ok(())
