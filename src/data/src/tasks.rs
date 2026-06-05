@@ -23,6 +23,11 @@ impl TasksDataSrc {
         }
     }
 
+    pub fn initialize(&self) -> Result<(), AppError> {
+
+        Ok(())
+    }
+
     pub fn load_tasks(&self) -> Result<Vec<Task>, AppError> {
         let db = self.db.borrow();
         let mut stmt = db.connection.prepare("SELECT * FROM tasks")?;

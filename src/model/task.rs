@@ -25,6 +25,7 @@ pub struct Task {
     pub created_at: DateTime<Local>,
     pub updated_at: DateTime<Local>,
     pub deadline: Option<DateTime<Local>>,
+    pub project_id: i16,
 }
 
 impl Task {
@@ -67,4 +68,13 @@ impl Status {
         let next_idx = (curr_idx - 1) % Self::VARIANTS.len();
         Self::VARIANTS[next_idx]
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct Project {
+ pub id: i16,
+ pub status: String,
+ pub title: String,
+ pub created_ar: DateTime<Local>,
+ pub updated_at: DateTime<Local>,
 }

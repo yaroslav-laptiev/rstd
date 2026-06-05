@@ -1,3 +1,5 @@
 migrations:
   - name: 01_define_schema
     hash: 11b7bf4c356dd1169608a26fc86300f4
+  - name: 02_add_projects
+    hash: 667f64080d164a366f262935778bd4f1
