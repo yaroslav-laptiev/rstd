@@ -33,6 +33,7 @@ impl Task {
         description: String,
         status: Option<Status>,
         deadline: Option<DateTime<Local>>,
+        project_id: Option<i16>,
     ) -> Task {
         Task {
             id: None,
@@ -41,6 +42,7 @@ impl Task {
             created_at: Local::now(),
             updated_at: Local::now(),
             deadline,
+            project_id: project_id.unwrap_or(0),
         }
     }
 }
@@ -75,6 +77,6 @@ pub struct Project {
  pub id: i16,
  pub status: String,
  pub title: String,
- pub created_ar: DateTime<Local>,
+ pub created_at: DateTime<Local>,
  pub updated_at: DateTime<Local>,
 }

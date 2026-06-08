@@ -107,6 +107,7 @@ impl<'a> AppState<'a> {
 
 pub struct TaskModalState {
     pub description_in: String,
+    pub project_id: String,
     pub deadline_in: String,
     pub entering_deadline: bool,
 }
@@ -115,6 +116,7 @@ impl TaskModalState {
     pub fn new() -> Self {
         Self {
             description_in: String::new(),
+            project_id: String::new(),
             deadline_in: String::new(),
             entering_deadline: false,
         }

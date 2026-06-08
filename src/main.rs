@@ -32,6 +32,7 @@ fn main() -> Result<(), AppError> {
     db.apply_migrations().expect("Failed to apply migrations");
 
     let mut task_ds = TasksDataSrc::new(db);
+    task_ds.initialize()?;
     let mut app = AppState::new(&mut task_ds);
     let mut modal_state = TaskModalState::new();
 
@@ -96,7 +97,7 @@ fn main() -> Result<(), AppError> {
                             let deadline = str_to_local_dt(&modal_state.deadline_in);
 
                             let task =
-                                Task::new(modal_state.description_in.to_string(), None, deadline);
+                                Task::new(modal_state.description_in.to_string(), None, deadline, i16::try_from(modal_state.project_id).or(None));
                             app.create_task(&task);
                             app.switch_mode();
                             modal_state.clear();
