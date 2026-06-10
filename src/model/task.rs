@@ -74,9 +74,9 @@ impl Status {
 
 #[derive(Debug, Clone)]
 pub struct Project {
- pub id: i16,
- pub status: String,
- pub title: String,
- pub created_at: DateTime<Local>,
- pub updated_at: DateTime<Local>,
+    pub id: i16,
+    pub status: String,
+    pub title: String,
+    pub created_at: DateTime<Local>,
+    pub updated_at: DateTime<Local>,
 }

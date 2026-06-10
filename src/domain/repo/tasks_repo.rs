@@ -1,4 +1,7 @@
-use crate::model::{error::AppError, task::Task};
+use crate::model::{
+    error::AppError,
+    task::{Project, Task},
+};
 
 pub trait TaskRepo {
     fn load_tasks(&self) -> Result<Vec<Task>, AppError>;
@@ -8,4 +11,10 @@ pub trait TaskRepo {
     fn update_task(&mut self, t: &Task) -> Result<(), AppError>;
 
     fn delete_task(&mut self, t: &Task) -> Result<(), AppError>;
+
+    fn load_projects(&mut self) -> Result<Vec<Project>, AppError>;
+
+    fn insert_project(&mut self, p: &Project) -> Result<(), AppError>;
+
+    fn delete_project(&mut self, p: &Project) -> Result<(), AppError>;
 }

@@ -3,12 +3,13 @@ use crate::{
     model::{
         app::AppMode,
         error::AppError,
-        task::{Status, Task},
+        task::{Project, Status, Task},
     },
 };
 
 pub struct AppState<'a> {
     pub tasks: Vec<Task>,
+    pub projects: Vec<Project>,
     pub selected_status: Status,
     pub selected_index: usize,
     pub should_quit: bool,
@@ -18,10 +19,11 @@ pub struct AppState<'a> {
 
 impl<'a> AppState<'a> {
     pub fn new(repo: &'a mut dyn TaskRepo) -> AppState<'a> {
+        let projects = repo.load_projects().expect("Failed to load projects");
         let tasks: Vec<Task> = repo.load_tasks().expect("Failed to load tasks");
-
         AppState {
             tasks: tasks,
+            projects: projects,
             selected_status: Status::Backlog,
             selected_index: 0,
             should_quit: false,
@@ -107,24 +109,81 @@ impl<'a> AppState<'a> {
 
 pub struct TaskModalState {
     pub description_in: String,
-    pub project_id: String,
+    pub project_id: i16,
     pub deadline_in: String,
-    pub entering_deadline: bool,
+    pub selected_field: TaskModalField,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum TaskModalField {
+    Description,
+    Project,
+    Deadline,
 }
 
 impl TaskModalState {
     pub fn new() -> Self {
         Self {
             description_in: String::new(),
-            project_id: String::new(),
+            project_id: 0,
             deadline_in: String::new(),
-            entering_deadline: false,
+            selected_field: TaskModalField::Description,
         }
     }
 
     pub fn clear(&mut self) {
         self.description_in = "".to_string();
         self.deadline_in = "".to_string();
-        self.entering_deadline = false;
+        self.project_id = 0;
+        self.selected_field = TaskModalField::Description;
+    }
+
+    pub fn select_next_field(&mut self) {
+        self.selected_field = match self.selected_field {
+            TaskModalField::Description => TaskModalField::Project,
+            TaskModalField::Project => TaskModalField::Deadline,
+            TaskModalField::Deadline => TaskModalField::Description,
+        };
+    }
+
+    pub fn select_next_project(&mut self, projects: &[Project]) {
+        if projects.is_empty() {
+            self.project_id = 0;
+            return;
+        }
+
+        let current_index = self.selected_project_index(projects).unwrap_or(0);
+        let next_index = (current_index + 1) % projects.len();
+        self.project_id = projects[next_index].id;
+    }
+
+    pub fn select_prev_project(&mut self, projects: &[Project]) {
+        if projects.is_empty() {
+            self.project_id = 0;
+            return;
+        }
+
+        let current_index = self.selected_project_index(projects).unwrap_or(0);
+        let prev_index = if current_index == 0 {
+            projects.len() - 1
+        } else {
+            current_index - 1
+        };
+        self.project_id = projects[prev_index].id;
+    }
+
+    pub fn selected_project_id(&self, projects: &[Project]) -> i16 {
+        if self.project_id != 0 {
+            return self.project_id;
+        }
+
+        projects.first().map(|project| project.id).unwrap_or(0)
+    }
+
+    pub fn selected_project_index(&self, projects: &[Project]) -> Option<usize> {
+        let selected_id = self.selected_project_id(projects);
+        projects
+            .iter()
+            .position(|project| project.id == selected_id)
     }
 }

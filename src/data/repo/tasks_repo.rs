@@ -1,7 +1,10 @@
 use crate::{
     data::src::tasks::TasksDataSrc,
     domain::repo::tasks_repo::TaskRepo,
-    model::{error::AppError, task::Task},
+    model::{
+        error::AppError,
+        task::{Project, Task},
+    },
 };
 
 impl TaskRepo for TasksDataSrc {
@@ -19,5 +22,17 @@ impl TaskRepo for TasksDataSrc {
 
     fn delete_task(&mut self, t: &Task) -> Result<(), AppError> {
         self.delete_task(t)
+    }
+
+    fn load_projects(&mut self) -> Result<Vec<Project>, AppError> {
+        self.list_projects()
+    }
+
+    fn insert_project(&mut self, p: &crate::model::task::Project) -> Result<(), AppError> {
+        todo!()
+    }
+
+    fn delete_project(&mut self, p: &crate::model::task::Project) -> Result<(), AppError> {
+        todo!()
     }
 }

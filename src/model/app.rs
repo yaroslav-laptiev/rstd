@@ -34,14 +34,18 @@ pub const BOARD_CONTROLS: [AppControl; 7] = [
     },
 ];
 
-pub const TASK_MODAL_CONTROLS: [AppControl; 3] = [
+pub const TASK_MODAL_CONTROLS: [AppControl; 4] = [
     AppControl {
         key_binding: "Ctrl + s",
         title: "Create task",
     },
     AppControl {
         key_binding: "Tab",
-        title: "Description/deadline switch",
+        title: "Switch field",
+    },
+    AppControl {
+        key_binding: "↑↓",
+        title: "Select project",
     },
     AppControl {
         key_binding: "Esc",

@@ -15,7 +15,7 @@ use crossterm::{
 };
 
 use crate::{
-    app::{AppState, TaskModalState},
+    app::{AppState, TaskModalField, TaskModalState},
     data::{Database, src::tasks::TasksDataSrc},
     model::{app::AppMode, error::AppError, task::Task},
     ui::{board::render_board, new_task::render_task_modal},
@@ -45,7 +45,7 @@ fn main() -> Result<(), AppError> {
             }
             AppMode::NewTask => {
                 let _ = terminal.draw(|frame| {
-                    render_task_modal(frame, &modal_state);
+                    render_task_modal(frame, &app.projects, &modal_state);
                 })?;
             }
         }
@@ -96,18 +96,26 @@ fn main() -> Result<(), AppError> {
                         (KeyCode::Char('s'), KeyModifiers::CONTROL) => {
                             let deadline = str_to_local_dt(&modal_state.deadline_in);
 
-                            let task =
-                                Task::new(modal_state.description_in.to_string(), None, deadline, i16::try_from(modal_state.project_id).or(None));
+                            let task = Task::new(
+                                modal_state.description_in.to_string(),
+                                None,
+                                deadline,
+                                Some(modal_state.selected_project_id(&app.projects)),
+                            );
                             app.create_task(&task);
                             app.switch_mode();
                             modal_state.clear();
                             break;
                         }
                         (KeyCode::Backspace, _) => {
-                            if !modal_state.entering_deadline {
-                                modal_state.description_in.pop();
-                            } else {
-                                modal_state.deadline_in.pop();
+                            match modal_state.selected_field {
+                                TaskModalField::Description => {
+                                    modal_state.description_in.pop();
+                                }
+                                TaskModalField::Project => {}
+                                TaskModalField::Deadline => {
+                                    modal_state.deadline_in.pop();
+                                }
                             }
                             break;
                         }
@@ -118,21 +126,37 @@ fn main() -> Result<(), AppError> {
                         }
                         (KeyCode::Char(_), _) => {
                             if let Some(ch) = key_event.code.as_char() {
-                                if !modal_state.entering_deadline {
-                                    modal_state.description_in.push(ch);
-                                } else {
-                                    modal_state.deadline_in.push(ch);
+                                match modal_state.selected_field {
+                                    TaskModalField::Description => {
+                                        modal_state.description_in.push(ch)
+                                    }
+                                    TaskModalField::Project => {}
+                                    TaskModalField::Deadline => modal_state.deadline_in.push(ch),
                                 }
                                 break;
                             }
                         }
                         (KeyCode::Enter, _) => {
-                            if !modal_state.entering_deadline {
+                            if modal_state.selected_field == TaskModalField::Description {
                                 modal_state.description_in.push('\n');
                             }
+                            break;
                         }
                         (KeyCode::Tab, _) => {
-                            modal_state.entering_deadline = !modal_state.entering_deadline;
+                            modal_state.select_next_field();
+                            break;
+                        }
+                        (KeyCode::Down, _) => {
+                            if modal_state.selected_field == TaskModalField::Project {
+                                modal_state.select_next_project(&app.projects);
+                                break;
+                            }
+                        }
+                        (KeyCode::Up, _) => {
+                            if modal_state.selected_field == TaskModalField::Project {
+                                modal_state.select_prev_project(&app.projects);
+                                break;
+                            }
                         }
                         _ => continue,
                     },

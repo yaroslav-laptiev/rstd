@@ -1,4 +1,3 @@
-use core::time;
 use std::{cell::RefCell, str::FromStr};
 
 use chrono::{DateTime, Local};
@@ -25,8 +24,7 @@ impl TasksDataSrc {
     }
 
     pub fn initialize(&self) -> Result<(), AppError> {
-
-        let projects = self.load_projects()?;
+        let projects = self.list_projects()?;
         if projects.len() == 0 {
             // add new() func for Project type
             let def_project = Project {
@@ -41,21 +39,22 @@ impl TasksDataSrc {
         Ok(())
     }
 
-    pub fn load_projects(&self) -> Result<Vec<Project>, AppError> {
+    pub fn list_projects(&self) -> Result<Vec<Project>, AppError> {
         let db = self.db.borrow();
-        let mut stmnt = db.connection.prepare(r#"
+        let mut stmnt = db.connection.prepare(
+            r#"
             SELECT * FROM projects
-        "#,)?;
+        "#,
+        )?;
         let projects_iter = stmnt.query_map([], |row| {
-            
             let created_at_str: String = row.get("created_at")?;
 
             let created_at: DateTime<Local> = db_timestamp_to_local_dt(&created_at_str);
 
             let updated_at_str: String = row.get("updated_at")?;
             let updated_at = db_timestamp_to_local_dt(&updated_at_str);
-            
-            Ok(Project{
+
+            Ok(Project {
                 id: row.get("id")?,
                 status: row.get("status")?,
                 title: row.get("title")?,
@@ -68,7 +67,7 @@ impl TasksDataSrc {
     }
 
     pub fn insert_project(&self, p: &Project) -> Result<(), AppError> {
-           self.db.borrow().connection.execute(
+        self.db.borrow().connection.execute(
             "INSERT INTO projects (title, status, created_at, updated_at)
 VALUES (?1, ?2, ?3, ?4);",
             params![
@@ -118,14 +117,15 @@ VALUES (?1, ?2, ?3, ?4);",
 
     pub fn insert_task(&mut self, t: &Task) -> Result<(), AppError> {
         self.db.borrow().connection.execute(
-            "INSERT INTO tasks (description, status, created_at, updated_at, deadline)
-VALUES (?1, ?2, ?3, ?4, ?5);",
+            "INSERT INTO tasks (description, status, created_at, updated_at, deadline, project_id)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6);",
             params![
                 t.description,
                 t.status.to_string(),
                 t.created_at.to_rfc3339(),
                 t.updated_at.to_rfc3339(),
                 t.deadline.as_ref().map(|d| d.to_rfc3339()),
+                t.project_id,
             ],
         )?;
         Ok(())
